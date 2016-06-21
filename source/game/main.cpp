@@ -44,6 +44,11 @@ int main()
     sf::Sprite cactusSprite(cactusTexture);
     cactusSprite.setPosition(1280 - 128, 960 - 128 - cactusTexture.getSize().y);
 
+    sf::Texture characterTexture;
+    characterTexture.loadFromFile("assets/character/idle_1.png");
+    sf::Sprite characterSprite(characterTexture);
+    characterSprite.setPosition(256, 960 - 256);
+
     while (window->isOpen())
     {
         sf::Event event;
@@ -60,6 +65,7 @@ int main()
         window->draw(treeSprite);
         window->draw(grassSprite);
         window->draw(cactusSprite);
+        window->draw(characterSprite);
         window->display();
     }
 }
