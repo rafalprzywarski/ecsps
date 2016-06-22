@@ -28,6 +28,8 @@ struct SpriteDesc
         : texture(std::move(texture)), anchor(anchor) { }
 };
 
+using Bin = unsigned short;
+
 struct TransformComponent
 {
     vec2i position;
@@ -37,9 +39,10 @@ struct TransformComponent
 struct SpriteComponent
 {
     Keyword name;
+    Bin bin;
 
-    SpriteComponent(Keyword name)
-        : name(std::move(name)) { }
+    SpriteComponent(Keyword name, Bin bin)
+        : name(std::move(name)), bin(bin) { }
 };
 
 struct Sprite
@@ -73,14 +76,20 @@ public:
     {
         window->clear();
 
-        for (std::size_t i = 0; i < spriteComponents.size(); ++i)
+        for (unsigned bin = 0, rendered = 0; bin < 128 && rendered < spriteComponents.size(); ++bin)
         {
-            auto& sprite = sprites.find(spriteComponents[i].name)->second;
-            sf::Sprite ss{*sprite.texture};
-            ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
-            auto position = transformComponents[i].position;
-            ss.setPosition(position[0], position[1]);
-            window->draw(ss);
+            for (std::size_t i = 0; i < spriteComponents.size(); ++i)
+            {
+                if (spriteComponents[i].bin != bin)
+                    continue;
+                auto& sprite = sprites.find(spriteComponents[i].name)->second;
+                sf::Sprite ss{*sprite.texture};
+                ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
+                auto position = transformComponents[i].position;
+                ss.setPosition(position[0], position[1]);
+                window->draw(ss);
+                ++rendered;
+            }
         }
 
         window->display();
@@ -111,15 +120,15 @@ int main()
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
-        {{"background"_k}, {{0, 0}}},
-        {{"tile1"_k}, {{0, 832}}},
-        {{"tile1"_k}, {{1152, 832}}},
-        {{"tile2"_k}, {{128, 832}}},
-        {{"tile3"_k}, {{256, 832}}},
-        {{"tree"_k}, {{0, 832}}},
-        {{"grass"_k}, {{256, 832}}},
-        {{"cactus"_k}, {{1152, 832}}},
-        {{"idle1"_k}, {{320, 832}}}
+        {{"idle1"_k, 3}, {{320, 832}}},
+        {{"tree"_k, 2}, {{0, 832}}},
+        {{"grass"_k, 2}, {{256, 832}}},
+        {{"cactus"_k, 2}, {{1152, 832}}},
+        {{"tile1"_k, 1}, {{0, 832}}},
+        {{"tile1"_k, 1}, {{1152, 832}}},
+        {{"tile2"_k, 1}, {{128, 832}}},
+        {{"tile3"_k, 1}, {{256, 832}}},
+        {{"background"_k, 0}, {{0, 0}}}
     };
 
     sf::ContextSettings settings;
