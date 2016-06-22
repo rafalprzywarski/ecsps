@@ -1,53 +1,80 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include <ecsps/Math.hpp>
+#include <ecsps/Keyword.hpp>
+#include <unordered_map>
+
+namespace ecsps
+{
+
+struct SpriteDesc
+{
+    std::string texture;
+    vec2i anchor;
+    SpriteDesc(std::string texture, vec2i anchor)
+        : texture(std::move(texture)), anchor(anchor) { }
+};
+
+struct SpriteComponent
+{
+    Keyword name;
+    vec2i position;
+
+    SpriteComponent(Keyword name, vec2i position)
+        : name(std::move(name)), position(position) { }
+};
+
+struct Sprite
+{
+    std::shared_ptr<const sf::Texture> texture;
+    std::shared_ptr<sf::Sprite> sprite;
+
+    Sprite(const SpriteDesc& desc)
+    {
+        auto texture = std::make_shared<sf::Texture>();
+        texture->loadFromFile(desc.texture);
+        this->texture = texture;
+        sprite = std::make_shared<sf::Sprite>(*texture);
+        sprite->setOrigin(desc.anchor[0], desc.anchor[1]);
+    }
+};
+
+}
 
 int main()
 {
+    using namespace ecsps;
+    std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
+        {"background"_k, {"assets/bg.png", { 0, 0 }}},
+        {"tile1"_k, {"assets/tiles/1.png", { 0, 0 }}},
+        {"tile2"_k, {"assets/tiles/2.png", { 0, 0 }}},
+        {"tile3"_k, {"assets/tiles/3.png", { 0, 0 }}},
+        {"tree"_k, {"assets/objects/tree.png", { 0, 260 }}},
+        {"grass"_k, {"assets/objects/grass2.png", { 0, 50 }}},
+        {"cactus"_k, {"assets/objects/cactus3.png", { 0, 96 }}},
+        {"idle1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
+    };
+
+    std::vector<SpriteComponent> spriteComponents = {
+        {"background"_k, {0, 0}},
+        {"tile1"_k, {0, 832}},
+        {"tile1"_k, {1152, 832}},
+        {"tile2"_k, {128, 832}},
+        {"tile3"_k, {256, 832}},
+        {"tree"_k, {0, 832}},
+        {"grass"_k, {256, 832}},
+        {"cactus"_k, {1152, 832}},
+        {"idle1"_k, {320, 832}}
+    };
+
+    std::unordered_map<Keyword, Sprite> sprites;
+    for (auto& desc : spriteDescs)
+        sprites.insert({desc.first, Sprite{desc.second}});
+
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
     auto window = std::make_unique<sf::RenderWindow>(sf::VideoMode(1280, 960), "game", sf::Style::Titlebar | sf::Style::Close, settings);
     window->setVerticalSyncEnabled(true);
-
-    sf::Texture bgTexture;
-    bgTexture.loadFromFile("assets/bg.png");
-    sf::Sprite bgSprite(bgTexture);
-
-    sf::Texture tile1Texture;
-    tile1Texture.loadFromFile("assets/tiles/1.png");
-    sf::Sprite tile1Sprite(tile1Texture);
-    tile1Sprite.setPosition(0, 960 - 128);
-    sf::Sprite tile1bSprite(tile1Texture);
-    tile1bSprite.setPosition(1280 - 128, 960 - 128);
-
-    sf::Texture tile2Texture;
-    tile2Texture.loadFromFile("assets/tiles/2.png");
-    sf::Sprite tile2Sprite(tile2Texture);
-    tile2Sprite.setPosition(128, 960 - 128);
-
-    sf::Texture tile3Texture;
-    tile3Texture.loadFromFile("assets/tiles/3.png");
-    sf::Sprite tile3Sprite(tile3Texture);
-    tile3Sprite.setPosition(256, 960 - 128);
-
-    sf::Texture treeTexture;
-    treeTexture.loadFromFile("assets/objects/tree.png");
-    sf::Sprite treeSprite(treeTexture);
-    treeSprite.setPosition(0, 960 - 128 - treeTexture.getSize().y);
-
-    sf::Texture grassTexture;
-    grassTexture.loadFromFile("assets/objects/grass2.png");
-    sf::Sprite grassSprite(grassTexture);
-    grassSprite.setPosition(256, 960 - 128 - grassTexture.getSize().y);
-
-    sf::Texture cactusTexture;
-    cactusTexture.loadFromFile("assets/objects/cactus3.png");
-    sf::Sprite cactusSprite(cactusTexture);
-    cactusSprite.setPosition(1280 - 128, 960 - 128 - cactusTexture.getSize().y);
-
-    sf::Texture characterTexture;
-    characterTexture.loadFromFile("assets/character/idle_1.png");
-    sf::Sprite characterSprite(characterTexture);
-    characterSprite.setPosition(256, 960 - 256);
 
     while (window->isOpen())
     {
@@ -57,15 +84,13 @@ int main()
                 window->close();
 
         window->clear();
-        window->draw(bgSprite);
-        window->draw(tile1Sprite);
-        window->draw(tile1bSprite);
-        window->draw(tile2Sprite);
-        window->draw(tile3Sprite);
-        window->draw(treeSprite);
-        window->draw(grassSprite);
-        window->draw(cactusSprite);
-        window->draw(characterSprite);
+
+        for (auto& component : spriteComponents)
+        {
+            auto& sprite = sprites.find(component.name)->second;
+            sprite.sprite->setPosition(component.position[0], component.position[1]);
+            window->draw(*sprite.sprite);
+        }
         window->display();
     }
 }
