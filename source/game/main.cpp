@@ -40,13 +40,49 @@ struct SpriteComponent
 struct Sprite
 {
     std::shared_ptr<const sf::Texture> texture;
-    std::shared_ptr<sf::Sprite> sprite;
+    vec2i anchor;
 
-    Sprite(std::shared_ptr<const sf::Texture> texture, const vec2i& anchor) : texture(std::move(texture))
+    Sprite(std::shared_ptr<const sf::Texture> texture, const vec2i& anchor)
+        : texture(std::move(texture)), anchor(anchor) { }
+};
+
+class RenderSystem
+{
+public:
+    RenderSystem(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<TexturePool> texturePool)
+        : window(window), texturePool(texturePool) { }
+
+    void loadSprites(std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs)
     {
-        sprite = std::make_shared<sf::Sprite>(*this->texture);
-        sprite->setOrigin(anchor[0], anchor[1]);
+        for (auto& desc : spriteDescs)
+            sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
     }
+
+    void setComponents(std::vector<SpriteComponent> components)
+    {
+        spriteComponents = components;
+    }
+
+    void render()
+    {
+        window->clear();
+
+        for (auto& component : spriteComponents)
+        {
+            auto& sprite = sprites.find(component.name)->second;
+            sf::Sprite ss{*sprite.texture};
+            ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
+            ss.setPosition(component.position[0], component.position[1]);
+            window->draw(ss);
+        }
+
+        window->display();
+    }
+private:
+    std::shared_ptr<sf::RenderWindow> window;
+    std::shared_ptr<TexturePool> texturePool;
+    std::unordered_map<Keyword, Sprite> sprites;
+    std::vector<SpriteComponent> spriteComponents;
 };
 
 }
@@ -54,8 +90,6 @@ struct Sprite
 int main()
 {
     using namespace ecsps;
-
-    auto texturePool = createTexturePool();
 
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
@@ -80,14 +114,14 @@ int main()
         {"idle1"_k, {320, 832}}
     };
 
-    std::unordered_map<Keyword, Sprite> sprites;
-    for (auto& desc : spriteDescs)
-        sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
-
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
-    auto window = std::make_unique<sf::RenderWindow>(sf::VideoMode(1280, 960), "game", sf::Style::Titlebar | sf::Style::Close, settings);
+    auto window = std::make_shared<sf::RenderWindow>(sf::VideoMode(1280, 960), "game", sf::Style::Titlebar | sf::Style::Close, settings);
     window->setVerticalSyncEnabled(true);
+
+    RenderSystem renderSystem(window, createTexturePool());
+    renderSystem.loadSprites(spriteDescs);
+    renderSystem.setComponents(spriteComponents);
 
     while (window->isOpen())
     {
@@ -96,14 +130,6 @@ int main()
             if (event.type == sf::Event::Closed)
                 window->close();
 
-        window->clear();
-
-        for (auto& component : spriteComponents)
-        {
-            auto& sprite = sprites.find(component.name)->second;
-            sprite.sprite->setPosition(component.position[0], component.position[1]);
-            window->draw(*sprite.sprite);
-        }
-        window->display();
+        renderSystem.render();
     }
 }
