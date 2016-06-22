@@ -8,7 +8,7 @@ class Keyword
 {
 public:
     Keyword() : Keyword(std::string{}) { }
-    Keyword(const std::string& name);
+    explicit Keyword(const std::string& name);
 
     const std::string& str() const { return *name; }
 
@@ -25,6 +25,11 @@ public:
 private:
     std::shared_ptr<const std::string> name;
 };
+
+inline Keyword operator""_k(const char *text, std::size_t length)
+{
+    return Keyword{std::string{text, length}};
+}
 
 inline bool operator!=(const Keyword& left, const Keyword& right)
 {

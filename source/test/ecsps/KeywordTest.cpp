@@ -26,4 +26,9 @@ TEST(KeywordTest, should_provide_std_hash)
     ASSERT_NE(0u, std::hash<Keyword>()(Keyword("abc")));
 }
 
+TEST(KeywordTest, should_provide_a_literal_operator)
+{
+    ASSERT_TRUE("word"_k == Keyword("word"));
+}
+
 }
