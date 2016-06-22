@@ -2,10 +2,23 @@
 #include <SFML/Graphics.hpp>
 #include <ecsps/Math.hpp>
 #include <ecsps/Keyword.hpp>
+#include <ecsps/ResourcePool.hpp>
 #include <unordered_map>
 
 namespace ecsps
 {
+
+using TexturePool = ResourcePool<std::string, sf::Texture>;
+
+std::shared_ptr<TexturePool> createTexturePool()
+{
+    return std::make_shared<TexturePool>([](const std::string& path)
+    {
+        std::unique_ptr<sf::Texture> texture = std::make_unique<sf::Texture>();
+        texture->loadFromFile(path);
+        return texture;
+    });
+}
 
 struct SpriteDesc
 {
@@ -29,13 +42,10 @@ struct Sprite
     std::shared_ptr<const sf::Texture> texture;
     std::shared_ptr<sf::Sprite> sprite;
 
-    Sprite(const SpriteDesc& desc)
+    Sprite(std::shared_ptr<const sf::Texture> texture, const vec2i& anchor) : texture(std::move(texture))
     {
-        auto texture = std::make_shared<sf::Texture>();
-        texture->loadFromFile(desc.texture);
-        this->texture = texture;
-        sprite = std::make_shared<sf::Sprite>(*texture);
-        sprite->setOrigin(desc.anchor[0], desc.anchor[1]);
+        sprite = std::make_shared<sf::Sprite>(*this->texture);
+        sprite->setOrigin(anchor[0], anchor[1]);
     }
 };
 
@@ -44,6 +54,9 @@ struct Sprite
 int main()
 {
     using namespace ecsps;
+
+    auto texturePool = createTexturePool();
+
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
         {"tile1"_k, {"assets/tiles/1.png", { 0, 0 }}},
@@ -69,7 +82,7 @@ int main()
 
     std::unordered_map<Keyword, Sprite> sprites;
     for (auto& desc : spriteDescs)
-        sprites.insert({desc.first, Sprite{desc.second}});
+        sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
