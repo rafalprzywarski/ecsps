@@ -4,6 +4,7 @@ include_directories("../core")
 
 add_executable(ecsps_test
     ecsps/KeywordTest.cpp
+    ecsps/ResourcePoolTest.cpp
     ecsps/ValuePoolTest.cpp
     main.cpp
 )
