@@ -4,9 +4,77 @@
 #include <ecsps/Keyword.hpp>
 #include <ecsps/ResourcePool.hpp>
 #include <unordered_map>
+#include <typeindex>
+#include <type_traits>
+#include <algorithm>
 
 namespace ecsps
 {
+
+template <typename... AllComponents>
+class EntitySystem
+{
+public:
+    template <typename... EntityComponents>
+    void createEntity(EntityComponents&&... components)
+    {
+        Entity entity;
+        addComponents(entity, std::forward<EntityComponents>(components)...);
+        entities.push_back(std::move(entity));
+    }
+
+    template <typename... EntityComponents>
+    auto query() const
+    {
+        return [this](auto f)
+        {
+            for (auto& entity : entities)
+                if (entity.template hasComponents<EntityComponents...>())
+                    f(std::get<std::vector<EntityComponents>>(components).at(entity.template getComponentIndex<EntityComponents>())...);
+        };
+    }
+
+private:
+    template <typename T>
+    using strip = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+
+    struct Entity
+    {
+        std::unordered_map<std::type_index, std::ptrdiff_t> components;
+
+        template <typename Component, typename Component2, typename... Components>
+        bool hasComponents() const
+        {
+            return hasComponents<Component>() && hasComponents<Component2, Components...>();
+        }
+
+        template <typename Component>
+        bool hasComponents() const
+        {
+            return components.find(std::type_index(typeid(Component))) != end(components);
+        }
+
+        template <typename Component>
+        auto getComponentIndex() const
+        {
+            return components.at(std::type_index(typeid(Component)));
+        }
+    };
+
+    void addComponents(Entity& entity) { }
+
+    template <typename EntityComponent, typename... EntityComponents>
+    void addComponents(Entity& entity, EntityComponent&& c, EntityComponents&&... cs)
+    {
+        auto& container = std::get<std::vector<strip<EntityComponent>>>(components);
+        container.push_back(std::forward<EntityComponent>(c));
+        entity.components[std::type_index(typeid(EntityComponent))] = container.size() - 1;
+        addComponents(entity, std::forward<EntityComponents>(cs)...);
+    }
+
+    std::tuple<std::vector<AllComponents>...> components;
+    std::vector<Entity> entities;
+};
 
 using TexturePool = ResourcePool<std::string, sf::Texture>;
 
@@ -45,6 +113,11 @@ struct SpriteComponent
         : name(std::move(name)), bin(bin) { }
 };
 
+struct ViewComponent
+{
+    sf::FloatRect viewport;
+};
+
 struct Sprite
 {
     std::shared_ptr<const sf::Texture> texture;
@@ -66,31 +139,32 @@ public:
             sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
     }
 
-    void addComponents(SpriteComponent sprite, TransformComponent transform)
-    {
-        spriteComponents.push_back(sprite);
-        transformComponents.push_back(transform);
-    }
-
-    void render()
+    template <typename EntitySystem>
+    void render(const EntitySystem& es)
     {
         window->clear();
 
-        for (unsigned bin = 0, rendered = 0; bin < 128 && rendered < spriteComponents.size(); ++bin)
+        es.template query<ViewComponent>()([&](const ViewComponent& viewComponent)
         {
-            for (std::size_t i = 0; i < spriteComponents.size(); ++i)
+            sf::View view{window->getDefaultView().getCenter(), window->getDefaultView().getSize()};
+            view.setViewport(viewComponent.viewport);
+            window->setView(view);
+            for (unsigned bin = 0, binCount = 1; bin < binCount; ++bin)
             {
-                if (spriteComponents[i].bin != bin)
-                    continue;
-                auto& sprite = sprites.find(spriteComponents[i].name)->second;
-                sf::Sprite ss{*sprite.texture};
-                ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
-                auto position = transformComponents[i].position;
-                ss.setPosition(position[0], position[1]);
-                window->draw(ss);
-                ++rendered;
+                es.template query<TransformComponent, SpriteComponent>()([&](const TransformComponent& transformComponent, const SpriteComponent& spriteComponent)
+                {
+                    binCount = std::max<Bin>(binCount, spriteComponent.bin + 1);
+                    if (spriteComponent.bin != bin)
+                        return;
+                    auto& sprite = sprites.find(spriteComponent.name)->second;
+                    sf::Sprite ss{*sprite.texture};
+                    ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
+                    auto position = transformComponent.position;
+                    ss.setPosition(position[0], position[1]);
+                    window->draw(ss);
+                });
             }
-        }
+        });
 
         window->display();
     }
@@ -98,8 +172,6 @@ private:
     std::shared_ptr<sf::RenderWindow> window;
     std::shared_ptr<TexturePool> texturePool;
     std::unordered_map<Keyword, Sprite> sprites;
-    std::vector<SpriteComponent> spriteComponents;
-    std::vector<TransformComponent> transformComponents;
 };
 
 }
@@ -107,6 +179,8 @@ private:
 int main()
 {
     using namespace ecsps;
+
+    EntitySystem<TransformComponent, SpriteComponent, ViewComponent> entitySystem;
 
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
@@ -131,6 +205,11 @@ int main()
         {{"background"_k, 0}, {{0, 0}}}
     };
 
+    for (auto& c : spriteComponents)
+        entitySystem.createEntity(c.first, c.second);
+
+    entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
+
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
     auto window = std::make_shared<sf::RenderWindow>(sf::VideoMode(1280, 960), "game", sf::Style::Titlebar | sf::Style::Close, settings);
@@ -138,8 +217,6 @@ int main()
 
     RenderSystem renderSystem(window, createTexturePool());
     renderSystem.loadSprites(spriteDescs);
-    for (auto& c : spriteComponents)
-        renderSystem.addComponents(c.first, c.second);
 
     while (window->isOpen())
     {
@@ -148,6 +225,6 @@ int main()
             if (event.type == sf::Event::Closed)
                 window->close();
 
-        renderSystem.render();
+        renderSystem.render(entitySystem);
     }
 }
