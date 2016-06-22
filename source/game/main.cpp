@@ -28,13 +28,18 @@ struct SpriteDesc
         : texture(std::move(texture)), anchor(anchor) { }
 };
 
+struct TransformComponent
+{
+    vec2i position;
+    TransformComponent(vec2i position) : position(position) { }
+};
+
 struct SpriteComponent
 {
     Keyword name;
-    vec2i position;
 
-    SpriteComponent(Keyword name, vec2i position)
-        : name(std::move(name)), position(position) { }
+    SpriteComponent(Keyword name)
+        : name(std::move(name)) { }
 };
 
 struct Sprite
@@ -58,21 +63,23 @@ public:
             sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
     }
 
-    void setComponents(std::vector<SpriteComponent> components)
+    void addComponents(SpriteComponent sprite, TransformComponent transform)
     {
-        spriteComponents = components;
+        spriteComponents.push_back(sprite);
+        transformComponents.push_back(transform);
     }
 
     void render()
     {
         window->clear();
 
-        for (auto& component : spriteComponents)
+        for (std::size_t i = 0; i < spriteComponents.size(); ++i)
         {
-            auto& sprite = sprites.find(component.name)->second;
+            auto& sprite = sprites.find(spriteComponents[i].name)->second;
             sf::Sprite ss{*sprite.texture};
             ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
-            ss.setPosition(component.position[0], component.position[1]);
+            auto position = transformComponents[i].position;
+            ss.setPosition(position[0], position[1]);
             window->draw(ss);
         }
 
@@ -83,6 +90,7 @@ private:
     std::shared_ptr<TexturePool> texturePool;
     std::unordered_map<Keyword, Sprite> sprites;
     std::vector<SpriteComponent> spriteComponents;
+    std::vector<TransformComponent> transformComponents;
 };
 
 }
@@ -102,16 +110,16 @@ int main()
         {"idle1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
     };
 
-    std::vector<SpriteComponent> spriteComponents = {
-        {"background"_k, {0, 0}},
-        {"tile1"_k, {0, 832}},
-        {"tile1"_k, {1152, 832}},
-        {"tile2"_k, {128, 832}},
-        {"tile3"_k, {256, 832}},
-        {"tree"_k, {0, 832}},
-        {"grass"_k, {256, 832}},
-        {"cactus"_k, {1152, 832}},
-        {"idle1"_k, {320, 832}}
+    std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
+        {{"background"_k}, {{0, 0}}},
+        {{"tile1"_k}, {{0, 832}}},
+        {{"tile1"_k}, {{1152, 832}}},
+        {{"tile2"_k}, {{128, 832}}},
+        {{"tile3"_k}, {{256, 832}}},
+        {{"tree"_k}, {{0, 832}}},
+        {{"grass"_k}, {{256, 832}}},
+        {{"cactus"_k}, {{1152, 832}}},
+        {{"idle1"_k}, {{320, 832}}}
     };
 
     sf::ContextSettings settings;
@@ -121,7 +129,8 @@ int main()
 
     RenderSystem renderSystem(window, createTexturePool());
     renderSystem.loadSprites(spriteDescs);
-    renderSystem.setComponents(spriteComponents);
+    for (auto& c : spriteComponents)
+        renderSystem.addComponents(c.first, c.second);
 
     while (window->isOpen())
     {
