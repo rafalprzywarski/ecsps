@@ -136,6 +136,27 @@ private:
     bool shouldJump = false;
 };
 
+struct AnimationComponent
+{
+    std::vector<Keyword> frames;
+    float framesPerSecond = 10;
+    float time = 0;
+};
+
+class AnimationSystem
+{
+public:
+    template <typename EntitySystem>
+    void step(EntitySystem& entitySystem, float delta)
+    {
+        entitySystem.template modify<SpriteComponent, AnimationComponent>()([&](auto& sprite, auto& animation)
+        {
+            animation.time = std::fmod(animation.time + delta, animation.frames.size() / animation.framesPerSecond);
+            sprite.name = animation.frames.at(animation.time * animation.framesPerSecond);
+        });
+    }
+};
+
 }
 
 int main()
@@ -145,6 +166,7 @@ int main()
     EntitySystem<
         TransformComponent,
         SpriteComponent,
+        AnimationComponent,
         ViewComponent,
         StaticColliderComponent,
         ColliderComponent,
@@ -166,7 +188,14 @@ int main()
         {"tree"_k, {"assets/objects/tree.png", { 0, 260 }}},
         {"grass"_k, {"assets/objects/grass2.png", { 0, 50 }}},
         {"cactus"_k, {"assets/objects/cactus3.png", { 0, 96 }}},
-        {"idle1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
+        {"run1"_k, {"assets/character/run_1.png", { 64, 128 }}},
+        {"run2"_k, {"assets/character/run_2.png", { 64, 128 }}},
+        {"run3"_k, {"assets/character/run_3.png", { 64, 128 }}},
+        {"run4"_k, {"assets/character/run_4.png", { 64, 128 }}},
+        {"run5"_k, {"assets/character/run_5.png", { 64, 128 }}},
+        {"run6"_k, {"assets/character/run_6.png", { 64, 128 }}},
+        {"run7"_k, {"assets/character/run_7.png", { 64, 128 }}},
+        {"run8"_k, {"assets/character/run_8.png", { 64, 128 }}},
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
@@ -200,7 +229,8 @@ int main()
 
     entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
     entitySystem.createEntity(
-        SpriteComponent{"idle1"_k, 3},
+        SpriteComponent{"run1"_k, 3},
+        AnimationComponent{{"run1"_k, "run2"_k, "run3"_k, "run4"_k, "run5"_k, "run6"_k, "run7"_k, "run8"_k}, 15, 0},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
@@ -216,6 +246,7 @@ int main()
     renderSystem.loadSprites(spriteDescs);
     PhysicsSystem physicsSystem;
     InputSystem inputSystem;
+    AnimationSystem animationSystem;
 
     sf::Clock clock;
     while (window->isOpen())
@@ -229,8 +260,10 @@ int main()
         inputSystem.moveLeft(sf::Keyboard::isKeyPressed(sf::Keyboard::Left));
         inputSystem.jump(sf::Keyboard::isKeyPressed(sf::Keyboard::Up));
 
-        physicsSystem.step(entitySystem, clock.restart().asSeconds());
+        auto delta = clock.restart().asSeconds();
+        physicsSystem.step(entitySystem, delta);
         renderSystem.render(entitySystem);
         inputSystem.apply(entitySystem);
+        animationSystem.step(entitySystem, delta);
     }
 }
