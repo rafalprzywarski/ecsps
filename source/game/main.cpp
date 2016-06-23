@@ -103,6 +103,39 @@ private:
     }
 };
 
+struct MovementInputComponent
+{
+    float movementSpeed{};
+};
+
+class InputSystem
+{
+public:
+    template <typename EntitySystem>
+    void apply(EntitySystem& entitySystem)
+    {
+        entitySystem.template modify<MovementInputComponent, VelocityComponent>()([&](const auto& input, auto& velocity)
+        {
+            velocity.velocity[0] = 0;
+            if (movingRight)
+                velocity.velocity[0] += input.movementSpeed;
+            if (movingLeft)
+                velocity.velocity[0] -= input.movementSpeed;
+            if (shouldJump)
+                velocity.velocity[1] = -input.movementSpeed;
+        });
+    }
+
+    void moveLeft(bool yes) { movingLeft = yes; }
+    void moveRight(bool yes) { movingRight = yes; }
+    void jump(bool yes) { shouldJump = yes; }
+
+private:
+    bool movingRight = false;
+    bool movingLeft = false;
+    bool shouldJump = false;
+};
+
 }
 
 int main()
@@ -116,7 +149,8 @@ int main()
         StaticColliderComponent,
         ColliderComponent,
         VelocityComponent,
-        GravityComponent> entitySystem;
+        GravityComponent,
+        MovementInputComponent> entitySystem;
 
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
@@ -170,7 +204,8 @@ int main()
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
-        ColliderComponent{{70, 129}, {24, 128}});
+        ColliderComponent{{70, 129}, {24, 128}},
+        MovementInputComponent{400});
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
@@ -180,6 +215,7 @@ int main()
     RenderSystem renderSystem(window, createTexturePool());
     renderSystem.loadSprites(spriteDescs);
     PhysicsSystem physicsSystem;
+    InputSystem inputSystem;
 
     sf::Clock clock;
     while (window->isOpen())
@@ -189,7 +225,12 @@ int main()
             if (event.type == sf::Event::Closed)
                 window->close();
 
+        inputSystem.moveRight(sf::Keyboard::isKeyPressed(sf::Keyboard::Right));
+        inputSystem.moveLeft(sf::Keyboard::isKeyPressed(sf::Keyboard::Left));
+        inputSystem.jump(sf::Keyboard::isKeyPressed(sf::Keyboard::Up));
+
         physicsSystem.step(entitySystem, clock.restart().asSeconds());
         renderSystem.render(entitySystem);
+        inputSystem.apply(entitySystem);
     }
 }
