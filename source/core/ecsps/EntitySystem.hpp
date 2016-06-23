@@ -30,6 +30,17 @@ public:
         };
     }
 
+    template <typename... EntityComponents>
+    auto modify()
+    {
+        return [this](auto f)
+        {
+            for (auto& entity : entities)
+                if (entity.template hasComponents<EntityComponents...>())
+                    f(std::get<std::vector<EntityComponents>>(components).at(entity.template getComponentIndex<EntityComponents>())...);
+        };
+    }
+
 private:
     template <typename T>
     using strip = typename std::remove_const<typename std::remove_reference<T>::type>::type;

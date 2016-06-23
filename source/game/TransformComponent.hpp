@@ -6,8 +6,8 @@ namespace ecsps
 
 struct TransformComponent
 {
-    vec2i position;
-    TransformComponent(vec2i position) : position(position) { }
+    vec2f position;
+    TransformComponent(vec2f position) : position(position) { }
 };
 
 }
