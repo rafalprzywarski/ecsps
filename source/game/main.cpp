@@ -136,26 +136,59 @@ private:
     bool shouldJump = false;
 };
 
-struct AnimationComponent
+template <typename T>
+class im
+{
+public:
+    im() : value{} {}
+    im(T&& value) : value(std::move(value)) { }
+    const T& operator*() const { return value; }
+    const T *operator->() const { return &**this; }
+private:
+    const T value;
+};
+
+struct Animation
 {
     std::vector<Keyword> frames;
-    float framesPerSecond = 10;
+    float framesPerSecond = 15;
+};
+
+struct AnimationComponent
+{
+    Keyword animation;
     float time = 0;
 };
 
 class AnimationSystem
 {
 public:
+
+    AnimationSystem(std::vector<std::pair<Keyword, Animation>> animations) : animations{begin(animations), end(animations)} { }
+
     template <typename EntitySystem>
     void step(EntitySystem& entitySystem, float delta)
     {
-        entitySystem.template modify<SpriteComponent, AnimationComponent>()([&](auto& sprite, auto& animation)
+        entitySystem.template modify<SpriteComponent, AnimationComponent>()([&](auto& sprite, auto& animationComponent)
         {
-            animation.time = std::fmod(animation.time + delta, animation.frames.size() / animation.framesPerSecond);
-            sprite.name = animation.frames.at(animation.time * animation.framesPerSecond);
+            auto& animation = animations.at(animationComponent.animation);
+            animationComponent.time = std::fmod(animationComponent.time + delta, animation.frames.size() / animation.framesPerSecond);
+            sprite.name = animation.frames.at(animationComponent.time * animation.framesPerSecond);
         });
     }
+
+private:
+    std::unordered_map<Keyword, Animation> animations;
 };
+
+std::vector<Keyword> frameNames(const std::string& prefix, unsigned n)
+{
+    std::vector<Keyword> names;
+    names.reserve(n);
+    for (unsigned i = 1; i <= n; ++i)
+        names.push_back(Keyword{prefix + std::to_string(i)});
+    return names;
+}
 
 }
 
@@ -196,6 +229,22 @@ int main()
         {"run6"_k, {"assets/character/run_6.png", { 64, 128 }}},
         {"run7"_k, {"assets/character/run_7.png", { 64, 128 }}},
         {"run8"_k, {"assets/character/run_8.png", { 64, 128 }}},
+
+        {"idle1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
+        {"idle2"_k, {"assets/character/idle_2.png", { 64, 128 }}},
+        {"idle3"_k, {"assets/character/idle_3.png", { 64, 128 }}},
+        {"idle4"_k, {"assets/character/idle_4.png", { 64, 128 }}},
+        {"idle5"_k, {"assets/character/idle_5.png", { 64, 128 }}},
+        {"idle6"_k, {"assets/character/idle_6.png", { 64, 128 }}},
+        {"idle7"_k, {"assets/character/idle_7.png", { 64, 128 }}},
+        {"idle8"_k, {"assets/character/idle_8.png", { 64, 128 }}},
+        {"idle9"_k, {"assets/character/idle_9.png", { 64, 128 }}},
+        {"idle10"_k, {"assets/character/idle_10.png", { 64, 128 }}},
+    };
+
+    std::vector<std::pair<Keyword, Animation>> animations = {
+        {"run"_k, Animation{frameNames("run", 8), 15}},
+        {"idle"_k, Animation{frameNames("idle", 10), 15}}
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
@@ -230,7 +279,7 @@ int main()
     entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
     entitySystem.createEntity(
         SpriteComponent{"run1"_k, 3},
-        AnimationComponent{{"run1"_k, "run2"_k, "run3"_k, "run4"_k, "run5"_k, "run6"_k, "run7"_k, "run8"_k}, 15, 0},
+        AnimationComponent{"idle"_k, 0},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
@@ -246,7 +295,7 @@ int main()
     renderSystem.loadSprites(spriteDescs);
     PhysicsSystem physicsSystem;
     InputSystem inputSystem;
-    AnimationSystem animationSystem;
+    AnimationSystem animationSystem{animations};
 
     sf::Clock clock;
     while (window->isOpen())
