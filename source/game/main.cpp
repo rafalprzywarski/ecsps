@@ -190,6 +190,40 @@ std::vector<Keyword> frameNames(const std::string& prefix, unsigned n)
     return names;
 }
 
+struct CharacterAnimation
+{
+    Keyword idle_left, idle_right;
+    Keyword run_left, run_right;
+};
+
+class CharacterAnimationSystem
+{
+public:
+    template <typename EntitySystem>
+    void apply(EntitySystem& entitySystem)
+    {
+        entitySystem.template modify<CharacterAnimation, VelocityComponent, AnimationComponent>()([&](const auto& character, const auto& velocity, auto& animation)
+        {
+            auto vx = velocity.velocity[0];
+            if (vx < 0)
+            {
+                animation.animation = character.run_left;
+            }
+            else if (vx > 0)
+            {
+                animation.animation = character.run_right;
+            }
+            else
+            {
+                if (animation.animation == character.run_right)
+                    animation.animation = character.idle_right;
+                if (animation.animation == character.run_left)
+                    animation.animation = character.idle_left;
+            }
+        });
+    }
+};
+
 }
 
 int main()
@@ -205,7 +239,8 @@ int main()
         ColliderComponent,
         VelocityComponent,
         GravityComponent,
-        MovementInputComponent> entitySystem;
+        MovementInputComponent,
+        CharacterAnimation> entitySystem;
 
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
@@ -300,8 +335,9 @@ int main()
 
     entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
     entitySystem.createEntity(
-        SpriteComponent{"run_l_1"_k, 3},
-        AnimationComponent{"run_l"_k, 0},
+        SpriteComponent{"idle_r_1"_k, 3},
+        AnimationComponent{"idle_r"_k, 0},
+        CharacterAnimation{"idle_l"_k, "idle_r"_k, "run_l"_k, "run_r"_k},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
@@ -317,6 +353,7 @@ int main()
     renderSystem.loadSprites(spriteDescs);
     PhysicsSystem physicsSystem;
     InputSystem inputSystem;
+    CharacterAnimationSystem characterAnimationSystem;
     AnimationSystem animationSystem{animations};
 
     sf::Clock clock;
@@ -335,6 +372,7 @@ int main()
         physicsSystem.step(entitySystem, delta);
         renderSystem.render(entitySystem);
         inputSystem.apply(entitySystem);
+        characterAnimationSystem.apply(entitySystem);
         animationSystem.step(entitySystem, delta);
     }
 }
