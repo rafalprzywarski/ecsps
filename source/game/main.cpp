@@ -244,6 +244,24 @@ public:
     }
 };
 
+class CharacterTrackingSystem
+{
+public:
+    template <typename EntitySystem>
+    void apply(EntitySystem& entitySystem)
+    {
+        vec2f characterPosition;
+        entitySystem.template query<CharacterState, TransformComponent>()([&](const auto&, const auto& transform)
+        {
+            characterPosition = transform.position;
+        });
+        entitySystem.template modify<ViewComponent>()([&](auto& view)
+        {
+            view.view.left = characterPosition[0] - view.view.width / 2;
+        });
+    }
+};
+
 auto loadSpriteDescs(const std::string& filename)
 {
     std::ifstream f(filename);
@@ -291,7 +309,8 @@ int main()
         {{"tree"_k, 2}, {{0, 832}}},
         {{"grass"_k, 2}, {{256, 704}}},
         {{"cactus"_k, 2}, {{1152, 832}}},
-        {{"background"_k, 0}, {{0, 0}}}
+        {{"background"_k, 0}, {{0, 0}}},
+        {{"background"_k, 0}, {{1280, 0}}},
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> tiles = {
@@ -307,7 +326,12 @@ int main()
         {{"tile15"_k, 1}, {{768, 576}}},
         {{"tile16"_k, 1}, {{896, 576}}},
 
-        {{"tile1"_k, 1}, {{1152, 832}}}
+        {{"tile1"_k, 1}, {{1152, 832}}},
+
+        {{"tile2"_k, 1}, {{1280, 832}}},
+        {{"tile2"_k, 1}, {{1280 + 128, 832}}},
+        {{"tile2"_k, 1}, {{1280 + 256, 832}}},
+        {{"tile2"_k, 1}, {{1280 + 384, 832}}},
     };
 
     for (auto& c : spriteComponents)
@@ -316,7 +340,6 @@ int main()
     for (auto& c : tiles)
         entitySystem.createEntity(c.first, c.second, StaticColliderComponent{{128, 128}, {0, 0}});
 
-    entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
     entitySystem.createEntity(
         SpriteComponent{"idle_r_1"_k, 3},
         AnimationComponent{"idle_r"_k, 0},
@@ -333,12 +356,15 @@ int main()
     auto window = std::make_shared<sf::RenderWindow>(sf::VideoMode(1280, 960), "game", sf::Style::Titlebar | sf::Style::Close, settings);
     window->setVerticalSyncEnabled(true);
 
+    entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}, {{}, window->getDefaultView().getSize()}});
+
     RenderSystem renderSystem(window, createTexturePool());
     renderSystem.loadSprites(spriteDescs);
     PhysicsSystem physicsSystem;
     InputSystem inputSystem;
     CharacterAnimationSystem characterAnimationSystem;
     AnimationSystem animationSystem{animations};
+    CharacterTrackingSystem characterTrackingSystem;
 
     sf::Clock clock;
     while (window->isOpen())
@@ -354,6 +380,7 @@ int main()
 
         auto delta = clock.restart().asSeconds();
         physicsSystem.step(entitySystem, delta);
+        characterTrackingSystem.apply(entitySystem);
         renderSystem.render(entitySystem);
         inputSystem.apply(entitySystem);
         characterAnimationSystem.apply(entitySystem);

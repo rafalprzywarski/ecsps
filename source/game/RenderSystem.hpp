@@ -45,6 +45,7 @@ struct SpriteComponent
 struct ViewComponent
 {
     sf::FloatRect viewport;
+    sf::FloatRect view;
 };
 
 class RenderSystem
@@ -66,7 +67,7 @@ public:
 
         es.template query<ViewComponent>()([&](const ViewComponent& viewComponent)
         {
-            sf::View view{window->getDefaultView().getCenter(), window->getDefaultView().getSize()};
+            sf::View view{viewComponent.view};
             view.setViewport(viewComponent.viewport);
             window->setView(view);
             for (unsigned bin = 0, binCount = 1; bin < binCount; ++bin)
