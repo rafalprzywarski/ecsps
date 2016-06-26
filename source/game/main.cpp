@@ -123,7 +123,7 @@ public:
     {
         entitySystem.template modify<MovementInputComponent, CharacterState, VelocityComponent>()([&](const auto& input, auto& state, auto& velocity)
         {
-            state.state = shouldJump ? "jumping"_k : (movingRight != movingLeft ? "running"_k : "idle"_k);
+            state.state = shouldJump ? "jumping"_k : (movingRight != movingLeft ? "running"_k : (shouldShoot ? "shooting"_k : "idle"_k));
             if (movingRight != movingLeft)
                 state.direction = movingRight ? "right"_k : "left"_k;
             velocity.velocity[0] = 0;
@@ -139,11 +139,13 @@ public:
     void moveLeft(bool yes) { movingLeft = yes; }
     void moveRight(bool yes) { movingRight = yes; }
     void jump(bool yes) { shouldJump = yes; }
+    void shoot(bool yes) { shouldShoot = yes; }
 
 private:
     bool movingRight = false;
     bool movingLeft = false;
     bool shouldJump = false;
+    bool shouldShoot = false;
 };
 
 template <typename T>
@@ -209,6 +211,7 @@ struct CharacterAnimation
     Keyword idle_left, idle_right;
     Keyword run_left, run_right;
     Keyword jump_left, jump_right;
+    Keyword shoot_left, shoot_right;
 };
 
 class CharacterAnimationSystem
@@ -219,7 +222,14 @@ public:
     {
         entitySystem.template modify<CharacterAnimation, CharacterState, VelocityComponent, AnimationComponent>()([&](const auto& character, const auto& state, const auto& velocity, auto& animation)
         {
-            if (state.state == "jumping"_k)
+            if (state.state == "shooting"_k)
+            {
+                if (animation.animation == character.shoot_left || animation.animation == character.shoot_right)
+                    return;
+                animation.animation = state.direction == "left"_k ? character.shoot_left : character.shoot_right;
+                animation.time = 0;
+            }
+            else if (state.state == "jumping"_k)
             {
                 if (animation.animation == character.jump_left || animation.animation == character.jump_right)
                     return;
@@ -302,7 +312,9 @@ int main()
         {"idle_r"_k, Animation{frameNames("idle_r_", 10), true, 15}},
         {"idle_l"_k, Animation{frameNames("idle_l_", 10), true, 15}},
         {"jump_r"_k, Animation{frameNames("jump_r_", 10), false, 15}},
-        {"jump_l"_k, Animation{frameNames("jump_l_", 10), false, 15}}
+        {"jump_l"_k, Animation{frameNames("jump_l_", 10), false, 15}},
+        {"shoot_r"_k, Animation{frameNames("shoot_r_", 3), true, 15}},
+        {"shoot_l"_k, Animation{frameNames("shoot_l_", 3), true, 15}}
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
@@ -343,7 +355,7 @@ int main()
     entitySystem.createEntity(
         SpriteComponent{"idle_r_1"_k, 3},
         AnimationComponent{"idle_r"_k, 0},
-        CharacterAnimation{"idle_l"_k, "idle_r"_k, "run_l"_k, "run_r"_k, "jump_l"_k, "jump_r"_k},
+        CharacterAnimation{"idle_l"_k, "idle_r"_k, "run_l"_k, "run_r"_k, "jump_l"_k, "jump_r"_k, "shoot_l"_k, "shoot_r"_k},
         CharacterState{},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
@@ -377,6 +389,7 @@ int main()
         inputSystem.moveRight(sf::Keyboard::isKeyPressed(sf::Keyboard::Right));
         inputSystem.moveLeft(sf::Keyboard::isKeyPressed(sf::Keyboard::Left));
         inputSystem.jump(sf::Keyboard::isKeyPressed(sf::Keyboard::Up));
+        inputSystem.shoot(sf::Keyboard::isKeyPressed(sf::Keyboard::Space));
 
         auto delta = clock.restart().asSeconds();
         physicsSystem.step(entitySystem, delta);

@@ -67,3 +67,9 @@ jump_l_7 assets/character/jump_7.png 64 128 true
 jump_l_8 assets/character/jump_8.png 64 128 true
 jump_l_9 assets/character/jump_9.png 64 128 true
 jump_l_10 assets/character/jump_10.png 64 128 true
+shoot_r_1 assets/character/shoot_1.png 64 128 false
+shoot_r_2 assets/character/shoot_2.png 64 128 false
+shoot_r_3 assets/character/shoot_3.png 64 128 false
+shoot_l_1 assets/character/shoot_1.png 64 128 true
+shoot_l_2 assets/character/shoot_2.png 64 128 true
+shoot_l_3 assets/character/shoot_3.png 64 128 true
