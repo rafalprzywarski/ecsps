@@ -8,6 +8,7 @@
 #include <typeindex>
 #include <type_traits>
 #include <algorithm>
+#include <fstream>
 
 namespace ecsps
 {
@@ -243,6 +244,19 @@ public:
     }
 };
 
+auto loadSpriteDescs(const std::string& filename)
+{
+    std::ifstream f(filename);
+    std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs;
+    std::string name, path, mirror;
+    int anchorX{}, anchorY{};
+
+    while (f >> name >> path >> anchorX >> anchorY >> mirror)
+        spriteDescs.push_back({Keyword{name}, {path, {anchorX, anchorY}, mirror == "true"}});
+
+    return spriteDescs;
+}
+
 }
 
 int main()
@@ -262,82 +276,7 @@ int main()
         CharacterAnimation,
         CharacterState> entitySystem;
 
-    std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
-        {"background"_k, {"assets/bg.png", { 0, 0 }}},
-        {"tile1"_k, {"assets/tiles/1.png", { 0, 0 }}},
-        {"tile2"_k, {"assets/tiles/2.png", { 0, 0 }}},
-        {"tile3"_k, {"assets/tiles/3.png", { 0, 0 }}},
-        {"tile8"_k, {"assets/tiles/8.png", { 0, 0 }}},
-        {"tile6"_k, {"assets/tiles/6.png", { 0, 0 }}},
-        {"tile7"_k, {"assets/tiles/7.png", { 0, 0 }}},
-        {"tile14"_k, {"assets/tiles/14.png", { 0, 0 }}},
-        {"tile15"_k, {"assets/tiles/15.png", { 0, 0 }}},
-        {"tile16"_k, {"assets/tiles/16.png", { 0, 0 }}},
-        {"tree"_k, {"assets/objects/tree.png", { 0, 260 }}},
-        {"grass"_k, {"assets/objects/grass2.png", { 0, 50 }}},
-        {"cactus"_k, {"assets/objects/cactus3.png", { 0, 96 }}},
-        {"run_r_1"_k, {"assets/character/run_1.png", { 64, 128 }}},
-        {"run_r_2"_k, {"assets/character/run_2.png", { 64, 128 }}},
-        {"run_r_3"_k, {"assets/character/run_3.png", { 64, 128 }}},
-        {"run_r_4"_k, {"assets/character/run_4.png", { 64, 128 }}},
-        {"run_r_5"_k, {"assets/character/run_5.png", { 64, 128 }}},
-        {"run_r_6"_k, {"assets/character/run_6.png", { 64, 128 }}},
-        {"run_r_7"_k, {"assets/character/run_7.png", { 64, 128 }}},
-        {"run_r_8"_k, {"assets/character/run_8.png", { 64, 128 }}},
-
-        {"run_l_1"_k, {"assets/character/run_1.png", { 64, 128 }, true}},
-        {"run_l_2"_k, {"assets/character/run_2.png", { 64, 128 }, true}},
-        {"run_l_3"_k, {"assets/character/run_3.png", { 64, 128 }, true}},
-        {"run_l_4"_k, {"assets/character/run_4.png", { 64, 128 }, true}},
-        {"run_l_5"_k, {"assets/character/run_5.png", { 64, 128 }, true}},
-        {"run_l_6"_k, {"assets/character/run_6.png", { 64, 128 }, true}},
-        {"run_l_7"_k, {"assets/character/run_7.png", { 64, 128 }, true}},
-        {"run_l_8"_k, {"assets/character/run_8.png", { 64, 128 }, true}},
-
-        {"idle_r_1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
-        {"idle_r_2"_k, {"assets/character/idle_2.png", { 64, 128 }}},
-        {"idle_r_3"_k, {"assets/character/idle_3.png", { 64, 128 }}},
-        {"idle_r_4"_k, {"assets/character/idle_4.png", { 64, 128 }}},
-        {"idle_r_5"_k, {"assets/character/idle_5.png", { 64, 128 }}},
-        {"idle_r_6"_k, {"assets/character/idle_6.png", { 64, 128 }}},
-        {"idle_r_7"_k, {"assets/character/idle_7.png", { 64, 128 }}},
-        {"idle_r_8"_k, {"assets/character/idle_8.png", { 64, 128 }}},
-        {"idle_r_9"_k, {"assets/character/idle_9.png", { 64, 128 }}},
-        {"idle_r_10"_k, {"assets/character/idle_10.png", { 64, 128 }}},
-
-        {"idle_l_1"_k, {"assets/character/idle_1.png", { 64, 128 }, true}},
-        {"idle_l_2"_k, {"assets/character/idle_2.png", { 64, 128 }, true}},
-        {"idle_l_3"_k, {"assets/character/idle_3.png", { 64, 128 }, true}},
-        {"idle_l_4"_k, {"assets/character/idle_4.png", { 64, 128 }, true}},
-        {"idle_l_5"_k, {"assets/character/idle_5.png", { 64, 128 }, true}},
-        {"idle_l_6"_k, {"assets/character/idle_6.png", { 64, 128 }, true}},
-        {"idle_l_7"_k, {"assets/character/idle_7.png", { 64, 128 }, true}},
-        {"idle_l_8"_k, {"assets/character/idle_8.png", { 64, 128 }, true}},
-        {"idle_l_9"_k, {"assets/character/idle_9.png", { 64, 128 }, true}},
-        {"idle_l_10"_k, {"assets/character/idle_10.png", { 64, 128 }, true}},
-
-        {"jump_r_1"_k, {"assets/character/jump_1.png", { 64, 128 }}},
-        {"jump_r_2"_k, {"assets/character/jump_2.png", { 64, 128 }}},
-        {"jump_r_3"_k, {"assets/character/jump_3.png", { 64, 128 }}},
-        {"jump_r_4"_k, {"assets/character/jump_4.png", { 64, 128 }}},
-        {"jump_r_5"_k, {"assets/character/jump_5.png", { 64, 128 }}},
-        {"jump_r_6"_k, {"assets/character/jump_6.png", { 64, 128 }}},
-        {"jump_r_7"_k, {"assets/character/jump_7.png", { 64, 128 }}},
-        {"jump_r_8"_k, {"assets/character/jump_8.png", { 64, 128 }}},
-        {"jump_r_9"_k, {"assets/character/jump_9.png", { 64, 128 }}},
-        {"jump_r_10"_k, {"assets/character/jump_10.png", { 64, 128 }}},
-
-        {"jump_l_1"_k, {"assets/character/jump_1.png", { 64, 128 }, true}},
-        {"jump_l_2"_k, {"assets/character/jump_2.png", { 64, 128 }, true}},
-        {"jump_l_3"_k, {"assets/character/jump_3.png", { 64, 128 }, true}},
-        {"jump_l_4"_k, {"assets/character/jump_4.png", { 64, 128 }, true}},
-        {"jump_l_5"_k, {"assets/character/jump_5.png", { 64, 128 }, true}},
-        {"jump_l_6"_k, {"assets/character/jump_6.png", { 64, 128 }, true}},
-        {"jump_l_7"_k, {"assets/character/jump_7.png", { 64, 128 }, true}},
-        {"jump_l_8"_k, {"assets/character/jump_8.png", { 64, 128 }, true}},
-        {"jump_l_9"_k, {"assets/character/jump_9.png", { 64, 128 }, true}},
-        {"jump_l_10"_k, {"assets/character/jump_10.png", { 64, 128 }, true}},
-    };
+    std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = loadSpriteDescs("assets/sprites");
 
     std::vector<std::pair<Keyword, Animation>> animations = {
         {"run_r"_k, Animation{frameNames("run_r_", 8), true, 15}},
