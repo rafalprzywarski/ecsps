@@ -16,17 +16,19 @@ struct SpriteDesc
 {
     std::string texture;
     vec2i anchor;
-    SpriteDesc(std::string texture, vec2i anchor)
-        : texture(std::move(texture)), anchor(anchor) { }
+    bool mirrored{};
+    SpriteDesc(std::string texture, vec2i anchor, bool mirrored = false)
+        : texture(std::move(texture)), anchor(anchor), mirrored(mirrored) { }
 };
 
 struct Sprite
 {
     std::shared_ptr<const sf::Texture> texture;
     vec2i anchor;
+    bool mirrored{};
 
-    Sprite(std::shared_ptr<const sf::Texture> texture, const vec2i& anchor)
-        : texture(std::move(texture)), anchor(anchor) { }
+    Sprite(std::shared_ptr<const sf::Texture> texture, const vec2i& anchor, bool mirrored)
+        : texture(std::move(texture)), anchor(anchor), mirrored(mirrored) { }
 };
 
 using Bin = unsigned short;
@@ -54,7 +56,7 @@ public:
     void loadSprites(std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs)
     {
         for (auto& desc : spriteDescs)
-            sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor}});
+            sprites.insert({desc.first, Sprite{texturePool->get(desc.second.texture), desc.second.anchor, desc.second.mirrored}});
     }
 
     template <typename EntitySystem>
@@ -74,9 +76,17 @@ public:
                     binCount = std::max<Bin>(binCount, spriteComponent.bin + 1);
                     if (spriteComponent.bin != bin)
                         return;
-                    auto& sprite = sprites.find(spriteComponent.name)->second;
+                    auto& sprite = sprites.at(spriteComponent.name);
                     sf::Sprite ss{*sprite.texture};
-                    ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
+                    if (sprite.mirrored)
+                    {
+                        ss.setScale(-1, 1);
+                        ss.setOrigin(sprite.texture->getSize().x - sprite.anchor[0], sprite.anchor[1]);
+                    }
+                    else
+                    {
+                        ss.setOrigin(sprite.anchor[0], sprite.anchor[1]);
+                    }
                     auto position = transformComponent.position;
                     ss.setPosition(position[0], position[1]);
                     window->draw(ss);

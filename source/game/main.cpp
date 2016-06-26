@@ -221,30 +221,52 @@ int main()
         {"tree"_k, {"assets/objects/tree.png", { 0, 260 }}},
         {"grass"_k, {"assets/objects/grass2.png", { 0, 50 }}},
         {"cactus"_k, {"assets/objects/cactus3.png", { 0, 96 }}},
-        {"run1"_k, {"assets/character/run_1.png", { 64, 128 }}},
-        {"run2"_k, {"assets/character/run_2.png", { 64, 128 }}},
-        {"run3"_k, {"assets/character/run_3.png", { 64, 128 }}},
-        {"run4"_k, {"assets/character/run_4.png", { 64, 128 }}},
-        {"run5"_k, {"assets/character/run_5.png", { 64, 128 }}},
-        {"run6"_k, {"assets/character/run_6.png", { 64, 128 }}},
-        {"run7"_k, {"assets/character/run_7.png", { 64, 128 }}},
-        {"run8"_k, {"assets/character/run_8.png", { 64, 128 }}},
+        {"run_r_1"_k, {"assets/character/run_1.png", { 64, 128 }}},
+        {"run_r_2"_k, {"assets/character/run_2.png", { 64, 128 }}},
+        {"run_r_3"_k, {"assets/character/run_3.png", { 64, 128 }}},
+        {"run_r_4"_k, {"assets/character/run_4.png", { 64, 128 }}},
+        {"run_r_5"_k, {"assets/character/run_5.png", { 64, 128 }}},
+        {"run_r_6"_k, {"assets/character/run_6.png", { 64, 128 }}},
+        {"run_r_7"_k, {"assets/character/run_7.png", { 64, 128 }}},
+        {"run_r_8"_k, {"assets/character/run_8.png", { 64, 128 }}},
 
-        {"idle1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
-        {"idle2"_k, {"assets/character/idle_2.png", { 64, 128 }}},
-        {"idle3"_k, {"assets/character/idle_3.png", { 64, 128 }}},
-        {"idle4"_k, {"assets/character/idle_4.png", { 64, 128 }}},
-        {"idle5"_k, {"assets/character/idle_5.png", { 64, 128 }}},
-        {"idle6"_k, {"assets/character/idle_6.png", { 64, 128 }}},
-        {"idle7"_k, {"assets/character/idle_7.png", { 64, 128 }}},
-        {"idle8"_k, {"assets/character/idle_8.png", { 64, 128 }}},
-        {"idle9"_k, {"assets/character/idle_9.png", { 64, 128 }}},
-        {"idle10"_k, {"assets/character/idle_10.png", { 64, 128 }}},
+        {"run_l_1"_k, {"assets/character/run_1.png", { 64, 128 }, true}},
+        {"run_l_2"_k, {"assets/character/run_2.png", { 64, 128 }, true}},
+        {"run_l_3"_k, {"assets/character/run_3.png", { 64, 128 }, true}},
+        {"run_l_4"_k, {"assets/character/run_4.png", { 64, 128 }, true}},
+        {"run_l_5"_k, {"assets/character/run_5.png", { 64, 128 }, true}},
+        {"run_l_6"_k, {"assets/character/run_6.png", { 64, 128 }, true}},
+        {"run_l_7"_k, {"assets/character/run_7.png", { 64, 128 }, true}},
+        {"run_l_8"_k, {"assets/character/run_8.png", { 64, 128 }, true}},
+
+        {"idle_r_1"_k, {"assets/character/idle_1.png", { 64, 128 }}},
+        {"idle_r_2"_k, {"assets/character/idle_2.png", { 64, 128 }}},
+        {"idle_r_3"_k, {"assets/character/idle_3.png", { 64, 128 }}},
+        {"idle_r_4"_k, {"assets/character/idle_4.png", { 64, 128 }}},
+        {"idle_r_5"_k, {"assets/character/idle_5.png", { 64, 128 }}},
+        {"idle_r_6"_k, {"assets/character/idle_6.png", { 64, 128 }}},
+        {"idle_r_7"_k, {"assets/character/idle_7.png", { 64, 128 }}},
+        {"idle_r_8"_k, {"assets/character/idle_8.png", { 64, 128 }}},
+        {"idle_r_9"_k, {"assets/character/idle_9.png", { 64, 128 }}},
+        {"idle_r_10"_k, {"assets/character/idle_10.png", { 64, 128 }}},
+
+        {"idle_l_1"_k, {"assets/character/idle_1.png", { 64, 128 }, true}},
+        {"idle_l_2"_k, {"assets/character/idle_2.png", { 64, 128 }, true}},
+        {"idle_l_3"_k, {"assets/character/idle_3.png", { 64, 128 }, true}},
+        {"idle_l_4"_k, {"assets/character/idle_4.png", { 64, 128 }, true}},
+        {"idle_l_5"_k, {"assets/character/idle_5.png", { 64, 128 }, true}},
+        {"idle_l_6"_k, {"assets/character/idle_6.png", { 64, 128 }, true}},
+        {"idle_l_7"_k, {"assets/character/idle_7.png", { 64, 128 }, true}},
+        {"idle_l_8"_k, {"assets/character/idle_8.png", { 64, 128 }, true}},
+        {"idle_l_9"_k, {"assets/character/idle_9.png", { 64, 128 }, true}},
+        {"idle_l_10"_k, {"assets/character/idle_10.png", { 64, 128 }, true}},
     };
 
     std::vector<std::pair<Keyword, Animation>> animations = {
-        {"run"_k, Animation{frameNames("run", 8), 15}},
-        {"idle"_k, Animation{frameNames("idle", 10), 15}}
+        {"run_r"_k, Animation{frameNames("run_r_", 8), 15}},
+        {"run_l"_k, Animation{frameNames("run_l_", 8), 15}},
+        {"idle_r"_k, Animation{frameNames("idle_r_", 10), 15}},
+        {"idle_l"_k, Animation{frameNames("idle_l_", 10), 15}}
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
@@ -278,8 +300,8 @@ int main()
 
     entitySystem.createEntity(ViewComponent{sf::FloatRect{0, 0, 1, 1}});
     entitySystem.createEntity(
-        SpriteComponent{"run1"_k, 3},
-        AnimationComponent{"idle"_k, 0},
+        SpriteComponent{"run_l_1"_k, 3},
+        AnimationComponent{"run_l"_k, 0},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
