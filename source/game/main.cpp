@@ -108,14 +108,23 @@ struct MovementInputComponent
     float movementSpeed{};
 };
 
+struct CharacterState
+{
+    Keyword state = "idle"_k;
+    Keyword direction = "right"_k;
+};
+
 class InputSystem
 {
 public:
     template <typename EntitySystem>
     void apply(EntitySystem& entitySystem)
     {
-        entitySystem.template modify<MovementInputComponent, VelocityComponent>()([&](const auto& input, auto& velocity)
+        entitySystem.template modify<MovementInputComponent, CharacterState, VelocityComponent>()([&](const auto& input, auto& state, auto& velocity)
         {
+            state.state = shouldJump ? "jumping"_k : (movingRight != movingLeft ? "running"_k : "idle"_k);
+            if (movingRight != movingLeft)
+                state.direction = movingRight ? "right"_k : "left"_k;
             velocity.velocity[0] = 0;
             if (movingRight)
                 velocity.velocity[0] += input.movementSpeed;
@@ -151,6 +160,7 @@ private:
 struct Animation
 {
     std::vector<Keyword> frames;
+    bool loop = true;
     float framesPerSecond = 15;
 };
 
@@ -172,7 +182,10 @@ public:
         entitySystem.template modify<SpriteComponent, AnimationComponent>()([&](auto& sprite, auto& animationComponent)
         {
             auto& animation = animations.at(animationComponent.animation);
-            animationComponent.time = std::fmod(animationComponent.time + delta, animation.frames.size() / animation.framesPerSecond);
+            if (!animation.loop)
+                animationComponent.time = std::min(animationComponent.time + delta, (animation.frames.size() - 1) / animation.framesPerSecond);
+            else
+                animationComponent.time = std::fmod(animationComponent.time + delta, animation.frames.size() / animation.framesPerSecond);
             sprite.name = animation.frames.at(animationComponent.time * animation.framesPerSecond);
         });
     }
@@ -194,6 +207,7 @@ struct CharacterAnimation
 {
     Keyword idle_left, idle_right;
     Keyword run_left, run_right;
+    Keyword jump_left, jump_right;
 };
 
 class CharacterAnimationSystem
@@ -202,23 +216,28 @@ public:
     template <typename EntitySystem>
     void apply(EntitySystem& entitySystem)
     {
-        entitySystem.template modify<CharacterAnimation, VelocityComponent, AnimationComponent>()([&](const auto& character, const auto& velocity, auto& animation)
+        entitySystem.template modify<CharacterAnimation, CharacterState, VelocityComponent, AnimationComponent>()([&](const auto& character, const auto& state, const auto& velocity, auto& animation)
         {
-            auto vx = velocity.velocity[0];
-            if (vx < 0)
+            if (state.state == "jumping"_k)
             {
-                animation.animation = character.run_left;
+                if (animation.animation == character.jump_left || animation.animation == character.jump_right)
+                    return;
+                animation.animation = state.direction == "left"_k ? character.jump_left : character.jump_right;
+                animation.time = 0;
             }
-            else if (vx > 0)
+            else if (state.state == "running"_k)
             {
-                animation.animation = character.run_right;
+                if (animation.animation == character.run_left || animation.animation == character.run_right)
+                    return;
+                animation.animation = state.direction == "left"_k ? character.run_left : character.run_right;
+                animation.time = 0;
             }
             else
             {
-                if (animation.animation == character.run_right)
-                    animation.animation = character.idle_right;
-                if (animation.animation == character.run_left)
-                    animation.animation = character.idle_left;
+                if (animation.animation == character.idle_left || animation.animation == character.idle_right)
+                    return;
+                animation.animation = state.direction == "left"_k ? character.idle_left : character.idle_right;
+                animation.time = 0;
             }
         });
     }
@@ -240,7 +259,8 @@ int main()
         VelocityComponent,
         GravityComponent,
         MovementInputComponent,
-        CharacterAnimation> entitySystem;
+        CharacterAnimation,
+        CharacterState> entitySystem;
 
     std::vector<std::pair<Keyword, SpriteDesc>> spriteDescs = {
         {"background"_k, {"assets/bg.png", { 0, 0 }}},
@@ -295,13 +315,37 @@ int main()
         {"idle_l_8"_k, {"assets/character/idle_8.png", { 64, 128 }, true}},
         {"idle_l_9"_k, {"assets/character/idle_9.png", { 64, 128 }, true}},
         {"idle_l_10"_k, {"assets/character/idle_10.png", { 64, 128 }, true}},
+
+        {"jump_r_1"_k, {"assets/character/jump_1.png", { 64, 128 }}},
+        {"jump_r_2"_k, {"assets/character/jump_2.png", { 64, 128 }}},
+        {"jump_r_3"_k, {"assets/character/jump_3.png", { 64, 128 }}},
+        {"jump_r_4"_k, {"assets/character/jump_4.png", { 64, 128 }}},
+        {"jump_r_5"_k, {"assets/character/jump_5.png", { 64, 128 }}},
+        {"jump_r_6"_k, {"assets/character/jump_6.png", { 64, 128 }}},
+        {"jump_r_7"_k, {"assets/character/jump_7.png", { 64, 128 }}},
+        {"jump_r_8"_k, {"assets/character/jump_8.png", { 64, 128 }}},
+        {"jump_r_9"_k, {"assets/character/jump_9.png", { 64, 128 }}},
+        {"jump_r_10"_k, {"assets/character/jump_10.png", { 64, 128 }}},
+
+        {"jump_l_1"_k, {"assets/character/jump_1.png", { 64, 128 }, true}},
+        {"jump_l_2"_k, {"assets/character/jump_2.png", { 64, 128 }, true}},
+        {"jump_l_3"_k, {"assets/character/jump_3.png", { 64, 128 }, true}},
+        {"jump_l_4"_k, {"assets/character/jump_4.png", { 64, 128 }, true}},
+        {"jump_l_5"_k, {"assets/character/jump_5.png", { 64, 128 }, true}},
+        {"jump_l_6"_k, {"assets/character/jump_6.png", { 64, 128 }, true}},
+        {"jump_l_7"_k, {"assets/character/jump_7.png", { 64, 128 }, true}},
+        {"jump_l_8"_k, {"assets/character/jump_8.png", { 64, 128 }, true}},
+        {"jump_l_9"_k, {"assets/character/jump_9.png", { 64, 128 }, true}},
+        {"jump_l_10"_k, {"assets/character/jump_10.png", { 64, 128 }, true}},
     };
 
     std::vector<std::pair<Keyword, Animation>> animations = {
-        {"run_r"_k, Animation{frameNames("run_r_", 8), 15}},
-        {"run_l"_k, Animation{frameNames("run_l_", 8), 15}},
-        {"idle_r"_k, Animation{frameNames("idle_r_", 10), 15}},
-        {"idle_l"_k, Animation{frameNames("idle_l_", 10), 15}}
+        {"run_r"_k, Animation{frameNames("run_r_", 8), true, 15}},
+        {"run_l"_k, Animation{frameNames("run_l_", 8), true, 15}},
+        {"idle_r"_k, Animation{frameNames("idle_r_", 10), true, 15}},
+        {"idle_l"_k, Animation{frameNames("idle_l_", 10), true, 15}},
+        {"jump_r"_k, Animation{frameNames("jump_r_", 10), false, 15}},
+        {"jump_l"_k, Animation{frameNames("jump_l_", 10), false, 15}}
     };
 
     std::vector<std::pair<SpriteComponent, TransformComponent>> spriteComponents = {
@@ -337,7 +381,8 @@ int main()
     entitySystem.createEntity(
         SpriteComponent{"idle_r_1"_k, 3},
         AnimationComponent{"idle_r"_k, 0},
-        CharacterAnimation{"idle_l"_k, "idle_r"_k, "run_l"_k, "run_r"_k},
+        CharacterAnimation{"idle_l"_k, "idle_r"_k, "run_l"_k, "run_r"_k, "jump_l"_k, "jump_r"_k},
+        CharacterState{},
         TransformComponent{{100, 822}},
         VelocityComponent{{100, -400}},
         GravityComponent{1200},
